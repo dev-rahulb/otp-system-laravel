@@ -3,4 +3,4 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Volt::route('/otp', 'otp-input');
+Volt::route('/', 'otp-input');

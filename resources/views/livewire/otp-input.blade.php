@@ -53,10 +53,14 @@ new class extends Component {
 ?>
 
 <div class="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100">
-
     <div class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-6 space-y-6">
-        <button wire:click="generateOTP"
-            class="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all">
+        
+        <!-- ✅ Button updated to dispatch event to clear inputs -->
+        <button 
+            wire:click="generateOTP"
+            x-on:click="$dispatch('clear-otp')"
+            class="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all"
+        >
             Generate OTP
         </button>
 
@@ -66,38 +70,48 @@ new class extends Component {
             </div>
         @endif
 
-        <div 
-            x-data="{
-                otp: Array(6).fill(''),
-                refs: [],
-                init() {
-                    this.$watch('otp', value => {
-                        const joined = this.otp.join('');
-                        if (joined.length === 6) {
-                            $wire.set('code', joined);
-                        }
-                    });
-                },
-                onPaste(e) {
-                    const paste = e.clipboardData.getData('text').trim();
-                    if (paste.length === 6 && /^\d+$/.test(paste)) {
-                        this.otp = [...paste];
-                        $wire.set('code', paste);
-                    }
-                },
-                onInput(index, event) {
-                    this.otp[index] = event.target.value;
-                    if (event.target.value && index < 5) {
-                        setTimeout(() => {
-                            this.refs[index + 1]?.focus();
-                        }, 10);
-                    }
+  <div 
+    x-data="{
+        otp: Array(6).fill(''),
+        refs: [],
+        code: @entangle('code').defer,
+        generatedOtp: @entangle('generatedOtp'),
+        init() {
+            this.$watch('otp', value => {
+                const joined = this.otp.join('');
+                if (joined.length === 6) {
+                    this.code = joined;
+                    $wire.set('code', joined); // 🔁 Explicitly trigger Livewire
                 }
-            }"
-            x-init="init"
-            @paste="onPaste"
-            class="flex flex-col items-center space-y-4"
-        >
+            });
+
+            this.$watch('generatedOtp', () => {
+                this.otp = Array(6).fill('');
+                this.refs[0]?.focus();
+            });
+        },
+        onPaste(e) {
+            const paste = e.clipboardData.getData('text').trim();
+            if (paste.length === 6 && /^\d+$/.test(paste)) {
+                this.otp = [...paste];
+                this.code = paste;
+                $wire.set('code', paste); // 🔁 Ensure Livewire sync
+            }
+        },
+        onInput(index, event) {
+            this.otp[index] = event.target.value;
+            if (event.target.value && index < 5) {
+                setTimeout(() => {
+                    this.refs[index + 1]?.focus();
+                }, 10);
+            }
+        }
+    }"
+    x-init="init"
+    @paste="onPaste"
+    class="flex flex-col items-center space-y-4"
+>
+
 
             <div class="flex justify-center space-x-2">
                 <template x-for="(digit, index) in otp" :key="index">
@@ -125,6 +139,4 @@ new class extends Component {
             <div wire:loading class="text-gray-500 text-sm">Processing...</div>
         </div>
     </div>
-
 </div>
-
